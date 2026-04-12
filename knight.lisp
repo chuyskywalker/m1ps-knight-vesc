@@ -6,8 +6,8 @@
 (import "pkg@://vesc_packages/lib_code_server/code_server.vescpkg" 'code-server)
 (read-eval-program code-server)
 
-; track the last time we sent out the brake state and only send on change
-(def last-brake-val 2)
+; track if the brake light should be on/off
+(def brake-light-val 0)
 
 (def drive-mode 1)
 
@@ -133,16 +133,21 @@
     (loopwhile-thd ("ADCWatch" 200) t {
         (if (> (get-adc 1) 1.0) {
             (app-adc-override 2 1.0)
-            ; only send a new packet if changed
-            (if (!= last-brake-val 1) (can-send-sid 314 (list 1 0 0 0 0 0 0 0)) )
-            (setq last-brake-val 1)
+            (setq brake-light-val 1)
         }{
             (app-adc-override 2 0.0)
-            ; only send a new packet if changed
-            (if (!= last-brake-val 0) (can-send-sid 314 (list 0 0 0 0 0 0 0 0)) )
-            (setq last-brake-val 0)
+            (setq brake-light-val 0)
         })
         (sleep 0.05)
+    })
+
+    ; repeatedly send the brake light state -- only sent "on change" it's possible
+    ; that the ESP could miss the message and now the light isn't in the correct state
+    ; until the next message. This repeat ensures state stays accurate.
+    ; timer is set low (4 times per second) to reduce noise but still be reasonably quick.
+    (loopwhile-thd ("brakelightmsg" 200) t {
+        (can-send-sid 314 (list brake-light-val 0 0 0 0 0 0 0)) )
+        (sleep 0.25)
     })
 
     (start-code-server)
@@ -153,4 +158,3 @@
 
 (image-save)
 (main)
-
