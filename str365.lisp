@@ -26,13 +26,13 @@
 ; For each button, create a mapping (with the implied index values) of mode->nextMode
 ; Makes for a very efficient and handy remapping when the button is pressed
 
-;                       0   1   2   3   4
-;                       R>N N>R L>N M>N H>N
-(define park-mappings [ 1   0   1   1   1  ])
+;                           0   1   2   3   4
+;                           R>N N>R L>N M>N H>N
+(define park-mappings (list 1   0   1   1   1  ))
 
-;                       0   1   2   3   4
-;                       R>L N>L L>M M>H H>L
-(define mode-mappings [ 2   2   3   4   2  ])
+;                           0   1   2   3   4
+;                           R>L N>L L>M M>H H>L
+(define mode-mappings (list 2   2   3   4   2  ))
 
 @const-start
 
@@ -80,6 +80,7 @@
         (var pin-states (tca9535-read-pins io-pin-park io-pin-mode))
         (var park-state (ix pin-states 0))
         (var mode-state (ix pin-states 1))
+
 
         ;(def drive-mode 1) ; 0 reverse; 1 neutral; 2 low; 3 med; 4 high
         (if (and (= last-mode-state 1) (= mode-state 0)) {
