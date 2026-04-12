@@ -14,6 +14,7 @@
 
 (def brake-light-status 0)
 
+; When the buttons press, they are connected to ground
 (def io-pin-park 13)
 (def io-pin-mode 15)
 
@@ -22,7 +23,9 @@
 
 (def drive-mode 1) ; 0 reverse; 1 neutral; 2 low; 3 med; 4 high
 
-; For each "mode", what should the mode be when the button is pressed?
+; For each button, create a mapping (with the implied index values) of mode->nextMode
+; Makes for a very efficient and handy remapping when the button is pressed
+
 ;                       0   1   2   3   4
 ;                       R>N N>R L>N M>N H>N
 (define park-mappings [ 1   0   1   1   1  ])
@@ -72,7 +75,7 @@
     ; button are and I'm not using the other pins
     (tca9535-write-pins '(17 1))
 
-    (loopwhile-thd ("Stats" 200) t {
+    (loopwhile-thd ("readbuttons" 200) t {
 
         (var pin-states (tca9535-read-pins io-pin-park io-pin-mode))
         (var park-state (ix pin-states 0))
@@ -81,21 +84,23 @@
         ;(def drive-mode 1) ; 0 reverse; 1 neutral; 2 low; 3 med; 4 high
         (if (and (= last-mode-state 1) (= mode-state 0)) {
             (setq drive-mode (ix mode-mappings drive-mode))
-            ; send out the new drive mode
-            (can-send-sid 301 (list drive-mode 0 0 0 0 0 0 0))
         })
 
         (if (and (= last-park-state 1) (= park-state 0)) {
             (setq drive-mode (ix park-mappings drive-mode))
-            ; send out the new drive mode
-            (can-send-sid 301 (list drive-mode 0 0 0 0 0 0 0))
         })
 
         (setq last-mode-state mode-state)
         (setq last-park-state park-state)
 
-        (sleep 0.1) ; a relatively quick loop to catch the button press
-                    ; kinda wish there was an interrupt driven version of this
+        (sleep 0.05) ; a very quick loop to catch the button presses
+    })
+
+    ; send the drive mode on repeat; if we only sent it on button press (in the above thread)
+    ; it's possible the message could be missed, but we also dont need to send it SUPER fast
+    (loopwhile-thd ("CANSend" 200) t {
+        (can-send-sid 301 (list drive-mode 0 0 0 0 0 0 0))
+        (sleep 0.25)
     })
 
 })
