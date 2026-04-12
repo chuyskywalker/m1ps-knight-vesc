@@ -146,7 +146,7 @@
     ; until the next message. This repeat ensures state stays accurate.
     ; timer is set low (4 times per second) to reduce noise but still be reasonably quick.
     (loopwhile-thd ("brakelightmsg" 200) t {
-        (can-send-sid 314 (list brake-light-val 0 0 0 0 0 0 0)) )
+        (can-send-sid 314 (list brake-light-val 0 0 0 0 0 0 0))
         (sleep 0.25)
     })
 
